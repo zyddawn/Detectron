@@ -32,6 +32,8 @@ import logging
 import os
 import sys
 import time
+import numpy as np
+from tqdm import tqdm
 
 from caffe2.python import workspace
 
@@ -104,12 +106,17 @@ def main(args):
         im_list = glob.iglob(args.im_or_folder + '/*.' + args.image_ext)
     else:
         im_list = [args.im_or_folder]
-
-    for i, im_name in enumerate(im_list):
+    
+    all_box = []
+    all_cls = []
+    all_mask = []
+    all_mask_cls = []
+    all_infer = []
+    for i, im_name in tqdm(enumerate(im_list)):
         out_name = os.path.join(
             args.output_dir, '{}'.format(os.path.basename(im_name) + '.pdf')
         )
-        logger.info('Processing {} -> {}'.format(im_name, out_name))
+        #logger.info('Processing {} -> {}'.format(im_name, out_name))
         im = cv2.imread(im_name)
         timers = defaultdict(Timer)
         t = time.time()
@@ -117,14 +124,24 @@ def main(args):
             cls_boxes, cls_segms, cls_keyps = infer_engine.im_detect_all(
                 model, im, None, timers=timers
             )
-        logger.info('Inference time: {:.3f}s'.format(time.time() - t))
-        for k, v in timers.items():
-            logger.info(' | {}: {:.3f}s'.format(k, v.average_time))
-        if i == 0:
-            logger.info(
-                ' \ Note: inference on the first image will be slower than the '
-                'rest (caches and auto-tuning need to warm up)'
-            )
+        inf_time = time.time()-t
+        #logger.info('Inference time: {:.3f}s'.format(inf_time))
+        all_infer.append(inf_time)
+	for k, v in timers.items():
+            #logger.info(' | {}: {:.3f}s'.format(k, v.average_time))
+	    if k == "im_detect_bbox":
+		all_box.append(v.average_time)
+	    elif k == "misc_mask":
+		all_mask_cls.append(v.average_time)
+	    elif k == "im_detect_mask":
+		all_mask.append(v.average_time)
+	    elif k == "misc_bbox":
+		all_cls.append(v.average_time)
+	#if i == 0:
+        #    logger.info(
+        #        ' \ Note: inference on the first image will be slower than the '
+        #        'rest (caches and auto-tuning need to warm up)'
+        #    )
 
         vis_utils.vis_one_image(
             im[:, :, ::-1],  # BGR -> RGB for visualization
@@ -139,6 +156,9 @@ def main(args):
             thresh=0.7,
             kp_thresh=2
         )
+    logger.info('avg_infer = {:.4f}s, std = {:.4f}s'.format(np.mean(all_infer), np.std(all_infer))) 
+    logger.info('avg_box = {:.4f}s, std = {:.4f}s || avg_cls = {:.4f}s, std = {:.4f}s'.format(np.mean(all_box), np.std(all_box), np.mean(all_cls), np.std(all_cls)))
+    logger.info('avg_mask= {:.4f}s, std = {:.4f}s || avg_mask_cls = {:.4f}s, std = {:.4f}s'.format(np.mean(all_mask), np.std(all_mask), np.mean(all_mask_cls), np.std(all_mask_cls)))   
 
 
 if __name__ == '__main__':

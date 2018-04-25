@@ -155,7 +155,12 @@ def im_detect_bbox(model, im, target_scale, target_max_size, boxes=None):
 
     for k, v in inputs.items():
         workspace.FeedBlob(core.ScopedName(k), v)
-    workspace.RunNet(model.net.Proto().name)
+    # workspace.RunNet(model.net.Proto().name)
+    warmup_runs = 20
+    main_runs = 100
+    run_individual = True
+    stat = workspace.BenchmarkNet(model.net.Proto().name, warmup_runs, main_runs, run_individual)
+    print(stat)
 
     # Read out blobs
     if cfg.MODEL.FASTER_RCNN:
