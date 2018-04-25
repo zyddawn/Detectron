@@ -159,7 +159,7 @@ def main(args):
     logger.info('avg_infer = {:.4f}s, std = {:.4f}s'.format(np.mean(all_infer), np.std(all_infer))) 
     logger.info('avg_box = {:.4f}s, std = {:.4f}s || avg_cls = {:.4f}s, std = {:.4f}s'.format(np.mean(all_box), np.std(all_box), np.mean(all_cls), np.std(all_cls)))
     logger.info('avg_mask= {:.4f}s, std = {:.4f}s || avg_mask_cls = {:.4f}s, std = {:.4f}s'.format(np.mean(all_mask), np.std(all_mask), np.mean(all_mask_cls), np.std(all_mask_cls)))   
-
+    # branch-wise profiling
 
 if __name__ == '__main__':
     workspace.GlobalInit(['caffe2', '--caffe2_log_level=0'])
